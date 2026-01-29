@@ -10,7 +10,8 @@ jobs:
   sonarqube_sast_scan:
     runs-on: self-hosted
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -24,23 +25,31 @@ jobs:
     runs-on: self-hosted
     needs: sonarqube_sast_scan
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
       - name: Docker Login
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Build & Push Docker Image
         run: |
-          VERSION=$(( $(cat version.txt) + 1 ))
+          # Ensure version.txt exists
+          touch version.txt
+          # Increment version
+          VERSION=$(( $(cat version.txt || echo 0) + 1 ))
+          echo "Building Docker image with version $VERSION"
+          # Build Docker image with explicit context
           docker build -t docker.io/${{ secrets.DOCKERHUB_USERNAME }}/supermariogitopsproject:$VERSION .
           docker push docker.io/${{ secrets.DOCKERHUB_USERNAME }}/supermariogitopsproject:$VERSION
+          # Update version.txt
           echo $VERSION > version.txt
 
   scan_supermario_image:
     runs-on: self-hosted
     needs: build_push_supermario_docker_image
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
       - name: Docker Login
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
@@ -61,17 +70,24 @@ jobs:
     runs-on: self-hosted
     needs: scan_supermario_image
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout Repository
+        uses: actions/checkout@v3
 
       - name: Set Git Config
         run: |
           git config --global user.email "${{ secrets.GIT_EMAIL }}"
           git config --global user.name "${{ secrets.GIT_USERNAME }}"
 
-      - name: Update Deployment YAML
+      - name: Update Deployment YAML and version.txt
         run: |
           VERSION=$(cat version.txt)
+          # Update deployment.yaml image tag
           sed -i "s|image: .*/supermariogitopsproject:.*|image: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/supermariogitopsproject:$VERSION|" deployment.yaml
           git add deployment.yaml version.txt
-          git commit -m "Update deployment.yaml and version.txt to $VERSION"
-          git push
+          # Commit only if there are changes
+          if git diff-index --quiet HEAD; then
+            echo "No changes to commit"
+          else
+            git commit -m "Update deployment.yaml and version.txt to $VERSION"
+            git push
+          fi
