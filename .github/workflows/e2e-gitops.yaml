@@ -11,7 +11,7 @@ env:
 jobs:
  
   sonarqube_sast_scan:
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
  
     steps:
       - name: Checkout Repository
@@ -45,8 +45,8 @@ jobs:
  
       - name: Build and Push Docker Image
         run: |
-          docker build -t docker.io/raghuthesecurityexpert/supermariogitopsproject:${{ env.VERSION }} .
-          docker push docker.io/raghuthesecurityexpert/supermariogitopsproject:${{ env.VERSION }}
+          docker build -t docker.io/chophelsc1996/supermariogitopsproject:${{ env.VERSION }} .
+          docker push docker.io/chophelsc1996/supermariogitopsproject:${{ env.VERSION }}
  
   run_container_image_scan_on_supermario_docker_image:
     runs-on: ubuntu-latest
