@@ -38,8 +38,8 @@ jobs:
           # Increment version
           VERSION=$(( $(cat version.txt || echo 0) + 1 ))
           echo "Building Docker image with version $VERSION"
-          # Build Docker image with explicit context
-          docker build -t docker.io/${{ secrets.DOCKERHUB_USERNAME }}/supermariogitopsproject:$VERSION .
+          # Build and push Docker image with explicit context
+          docker build . -t docker.io/${{ secrets.DOCKERHUB_USERNAME }}/supermariogitopsproject:$VERSION
           docker push docker.io/${{ secrets.DOCKERHUB_USERNAME }}/supermariogitopsproject:$VERSION
           # Update version.txt
           echo $VERSION > version.txt
@@ -78,16 +78,10 @@ jobs:
           git config --global user.email "${{ secrets.GIT_EMAIL }}"
           git config --global user.name "${{ secrets.GIT_USERNAME }}"
 
-      - name: Update Deployment YAML and version.txt
+      - name: Update Deployment YAML
         run: |
           VERSION=$(cat version.txt)
-          # Update deployment.yaml image tag
           sed -i "s|image: .*/supermariogitopsproject:.*|image: docker.io/${{ secrets.DOCKERHUB_USERNAME }}/supermariogitopsproject:$VERSION|" deployment.yaml
           git add deployment.yaml version.txt
-          # Commit only if there are changes
-          if git diff-index --quiet HEAD; then
-            echo "No changes to commit"
-          else
-            git commit -m "Update deployment.yaml and version.txt to $VERSION"
-            git push
-          fi
+          git commit -m "Update deployment.yaml and version.txt to $VERSION"
+          git push
