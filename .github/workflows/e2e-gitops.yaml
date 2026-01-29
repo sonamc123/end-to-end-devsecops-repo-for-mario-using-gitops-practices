@@ -7,7 +7,7 @@ on:
  
 env:
   VERSION: $(( $(cat version.txt) + 1 ))
-  
+  kkk
 jobs:
  
   sonarqube_sast_scan:
