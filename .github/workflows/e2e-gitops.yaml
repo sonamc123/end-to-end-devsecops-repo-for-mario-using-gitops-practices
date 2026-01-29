@@ -10,8 +10,7 @@ jobs:
   sonarqube_sast_scan:
     runs-on: self-hosted
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
@@ -25,29 +24,34 @@ jobs:
     runs-on: self-hosted
     needs: sonarqube_sast_scan
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Docker Login
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
       - name: Build & Push Docker Image
         run: |
-          cd $GITHUB_WORKSPACE
           # Ensure version.txt exists
           touch version.txt
+          
+          # Increment version
           VERSION=$(( $(cat version.txt || echo 0) + 1 ))
           echo "Building Docker image with version $VERSION"
-          # Build and push using docker buildx
+
+          # Move to repository root
+          cd $GITHUB_WORKSPACE
+
+          # Build and push Docker image
           docker buildx build --push -t docker.io/${{ secrets.DOCKERHUB_USERNAME }}/supermariogitopsproject:$VERSION .
+
+          # Update version.txt
           echo $VERSION > version.txt
 
   scan_supermario_image:
     runs-on: self-hosted
     needs: build_push_supermario_docker_image
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Docker Login
         run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
@@ -68,8 +72,7 @@ jobs:
     runs-on: self-hosted
     needs: scan_supermario_image
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Set Git Config
         run: |
